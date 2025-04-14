@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-plus-circle me-2"></i>
+                    <h5 class="card-title mb-0" id="formTitle">Add New Expense</h5>
+                </div>
+                <div class="toggle-switch">
+                    <button id="toggleType" class="btn btn-sm btn-outline-primary" data-type="expense">
+                        <i class="bi bi-arrow-repeat"></i> Toggle
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('add_expense') }}" method="POST">
+                    <div class="mb-3">
+                        <label for="date" class="form-label">
+                            <i class="bi bi-calendar3 me-1"></i>Date
+                        </label>
+                        <input type="date" class="form-control" id="date" name="date" required 
+                               value="{{ now.strftime('%Y-%m-%d') }}">
+                    </div>
+                    <div class="mb-3">
+                        <label for="amount" class="form-label">
+                            <i class="bi bi-currency-yen me-1"></i>Amount
+                        </label>
+                        <div class="input-group">
+                            <select class="form-select" id="currency" name="currency" style="max-width: 80px;">
+                                <option value="NTD" {% if currency == 'NTD' %}selected{% endif %}>NTD</option>
+                                <option value="MYR" {% if currency == 'MYR' %}selected{% endif %}>MYR</option>
+                                <option value="USD" {% if currency == 'USD' %}selected{% endif %}>USD</option>
+                            </select>
+                            <input type="number" step="0.01" class="form-control" id="amount" name="amount" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label d-flex justify-content-between align-items-center">
+                            <span>
+                                <i class="bi bi-tag me-1"></i>Category
+                            </span>
+                            <a href="{{ url_for('categories') }}" class="btn btn-outline-primary btn-sm">
+                                <i class="bi bi-gear me-1"></i>Manage
+                            </a>
+                        </label>
+                        <div class="category-selector" id="expenseCategories">
+                            {% for category in expense_categories %}
+                                <div class="category-option" data-category="{{ category[0] }}">
+                                    {{ category[0] }}
+                                </div>
+                            {% endfor %}
+                        </div>
+                        <div class="category-selector" id="incomeCategories" style="display: none;">
+                            {% for category in income_categories %}
+                                <div class="category-option" data-category="{{ category[0] }}">
+                                    {{ category[0] }}
+                                </div>
+                            {% endfor %}
+                        </div>
+                        <input type="hidden" id="category" name="category" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="description" class="form-label">
+                            <i class="bi bi-chat-left-text me-1"></i>Description
+                        </label>
+                        <input type="text" class="form-control" id="description" name="description" placeholder="Add notes...">
+                    </div>
+                    <input type="hidden" name="type" id="recordType" value="expense">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-plus-lg me-1"></i>Add Record
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div>
+                    <i class="bi bi-calendar3 me-2"></i>
+                    <h5 class="card-title mb-0 d-inline">{{ year }} - {{ month }}</h5>
+                </div>
+                <div>
+                    <a href="{{ url_for('index', year=prev_year, month=prev_month) }}" 
+                       class="btn btn-outline-primary btn-sm me-2">
+                        <i class="bi bi-chevron-left"></i>
+                    </a>
+                    <a href="{{ url_for('index', year=next_year, month=next_month) }}" 
+                       class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="calendar">
+                    <div class="calendar-header">
+                        <h5 class="mb-0">{{ month_name }} {{ year }}</h5>
+                    </div>
+                    <div class="calendar-grid">
+                        <div class="calendar-day">Sun</div>
+                        <div class="calendar-day">Mon</div>
+                        <div class="calendar-day">Tue</div>
+                        <div class="calendar-day">Wed</div>
+                        <div class="calendar-day">Thu</div>
+                        <div class="calendar-day">Fri</div>
+                        <div class="calendar-day">Sat</div>
+                        
+                        {% for week in calendar %}
+                            {% for day in week %}
+                                {% if day == 0 %}
+                                    <div class="calendar-day"></div>
+                                {% else %}
+                                    {% set date_str = '%d-%02d-%02d' % (year, month, day) %}
+                                    <div class="calendar-day {% if date_str in daily_totals %}has-expense{% endif %} {% if day == now.day and month == now.month and year == now.year %}today{% endif %}">
+                                        <a href="{{ url_for('day_detail', date=date_str) }}" class="day-link">
+                                            <span class="day-number">{{ day }}</span>
+                                            {% if date_str in daily_totals %}
+                                                <span class="amount">{{ "%.2f"|format(daily_totals[date_str]) }}</span>
+                                            {% endif %}
+                                        </a>
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 分类选择功能
+        const categoryOptions = document.querySelectorAll('.category-option');
+        const categoryInput = document.getElementById('category');
+        
+        categoryOptions.forEach(option => {
+            option.addEventListener('click', function() {
+                // 移除所有active类
+                categoryOptions.forEach(opt => opt.classList.remove('active'));
+                // 添加active类到当前选项
+                this.classList.add('active');
+                // 更新隐藏输入框的值
+                categoryInput.value = this.dataset.category;
+            });
+        });
+
+        // 添加切换按钮功能
+        const toggleButton = document.getElementById('toggleType');
+        const recordTypeInput = document.getElementById('recordType');
+        const formTitle = document.getElementById('formTitle');
+        const expenseCategories = document.getElementById('expenseCategories');
+        const incomeCategories = document.getElementById('incomeCategories');
+        
+        let currentType = 'expense';
+        
+        toggleButton.addEventListener('click', function() {
+            // 切换类型
+            currentType = currentType === 'expense' ? 'income' : 'expense';
+            
+            // 更新隐藏输入字段的值
+            recordTypeInput.value = currentType;
+            
+            // 更新表单标题
+            formTitle.textContent = `Add New ${currentType.charAt(0).toUpperCase() + currentType.slice(1)}`;
+            
+            // 切换类别选择器
+            if (currentType === 'expense') {
+                expenseCategories.style.display = 'flex';
+                incomeCategories.style.display = 'none';
+            } else {
+                expenseCategories.style.display = 'none';
+                incomeCategories.style.display = 'flex';
+            }
+            
+            // 清除选中的类别
+            categoryInput.value = '';
+            categoryOptions.forEach(opt => opt.classList.remove('active'));
+        });
+    });
+</script>
+{% endblock %} 

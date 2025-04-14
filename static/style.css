@@ -1,0 +1,388 @@
+:root {
+    --primary-color: #4a5568;
+    --secondary-color: #718096;
+    --text-color: #e2e8f0;
+    --border-color: #4a5568;
+    --success-color: #48bb78;
+    --danger-color: #f56565;
+    --warning-color: #ed8936;
+    --info-color: #4299e1;
+    --light-color: #1a202c;
+    --dark-color: #e2e8f0;
+    --calendar-bg: #2d3748;
+    --calendar-border: #4a5568;
+    --calendar-hover: #4a5568;
+    --expense-color: #e2e8f0;
+    --expense-bg: #2d3748;
+    --card-bg: #2d3748;
+    --input-bg: #2d3748;
+    --table-hover: #4a5568;
+}
+
+body {
+    background-color: var(--light-color);
+    color: var(--dark-color);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.navbar {
+    background: linear-gradient(135deg, #2d3748, #1a202c) !important;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+}
+
+.navbar-brand {
+    font-weight: 600;
+    font-size: 1.5rem;
+}
+
+.card {
+    border: none;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+    transition: transform 0.3s ease;
+    margin-bottom: 20px;
+    background-color: var(--card-bg);
+    border-color: var(--calendar-border);
+}
+
+.card:hover {
+    transform: translateY(-5px);
+}
+
+.card-header {
+    background-color: var(--card-bg);
+    border-bottom: 1px solid var(--border-color);
+    padding: 1.25rem;
+    border-radius: 10px 10px 0 0;
+}
+
+.card-title {
+    color: var(--text-color);
+    font-weight: 600;
+    margin: 0;
+}
+
+.form-control, .form-select {
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 10px 15px;
+    background-color: var(--input-bg);
+    color: var(--dark-color);
+}
+
+/* 移除货币选择器样式 */
+.currency-selector {
+    display: none;
+}
+
+.currency-option {
+    display: none;
+}
+
+/* 添加下拉菜单样式 */
+.input-group .form-select {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+    background-color: var(--input-bg);
+    color: var(--text-color);
+    border-color: var(--border-color);
+}
+
+.input-group .form-control {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+
+.input-group .form-select:focus,
+.input-group .form-control:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.25rem rgba(var(--primary-rgb), 0.25);
+}
+
+/* 移除数字输入框的上下箭头 */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+input[type="number"] {
+    -moz-appearance: textfield;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(74, 85, 104, 0.25);
+    background-color: var(--input-bg);
+    color: var(--dark-color);
+}
+
+.btn-primary {
+    background-color: #2d3748;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(74, 85, 104, 0.3);
+    background-color: #4a5568;
+}
+
+.btn-danger {
+    background-color: var(--danger-color);
+    border: none;
+    border-radius: 8px;
+    padding: 5px 15px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn-danger:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(245, 101, 101, 0.3);
+}
+
+.table {
+    margin-bottom: 0;
+    color: var(--dark-color);
+}
+
+.table thead th {
+    border-top: none;
+    border-bottom: 2px solid var(--border-color);
+    color: var(--text-color);
+    font-weight: 600;
+    padding: 15px;
+}
+
+.table tbody td {
+    padding: 15px;
+    vertical-align: middle;
+}
+
+.table tbody tr:hover {
+    background-color: var(--table-hover);
+}
+
+.alert {
+    border-radius: 8px;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.container {
+    max-width: 1200px;
+    padding: 20px;
+}
+
+/* 日历样式 */
+.calendar {
+    background-color: var(--card-bg);
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 20px;
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+}
+
+.calendar-header {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 5px;
+    text-align: center;
+}
+
+.calendar-day {
+    padding: 8px 5px;
+    border-radius: 5px;
+    transition: all 0.2s ease;
+    font-size: 0.9rem;
+    min-height: 35px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text-color);
+}
+
+.calendar-day:hover {
+    background-color: var(--calendar-hover);
+}
+
+.calendar-day.has-expense {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.calendar-day.today {
+    border: 2px solid var(--primary-color);
+}
+
+.calendar-day .day-number {
+    font-weight: 500;
+    color: inherit;
+}
+
+.calendar-day .amount {
+    font-size: 0.8rem;
+    margin-top: 2px;
+    color: inherit;
+}
+
+/* 分类选择样式 */
+.category-selector {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 5px;
+}
+
+.category-option {
+    padding: 6px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    cursor: pointer;
+    background-color: var(--input-bg);
+    color: var(--text-color);
+    transition: all 0.2s ease;
+    white-space: normal;
+    word-break: break-word;
+    max-width: 150px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.category-option i {
+    flex-shrink: 0;
+}
+
+.category-option:hover, .category-option.active {
+    background-color: var(--calendar-hover);
+    border-color: var(--primary-color);
+}
+
+.btn-theme-toggle {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .card {
+        margin-bottom: 15px;
+    }
+    
+    .table {
+        font-size: 0.9rem;
+    }
+    
+    .btn {
+        padding: 8px 15px;
+    }
+    
+    .calendar-week {
+        gap: 0.25rem;
+    }
+    
+    .calendar-day {
+        padding: 0.25rem;
+        font-size: 0.875rem;
+    }
+    
+    .day-total {
+        font-size: 0.75rem;
+    }
+}
+
+/* 切换按钮样式 */
+.toggle-container {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+    background-color: var(--card-bg);
+    border-radius: 8px;
+    padding: 5px;
+    width: 100%;
+    max-width: 300px;
+    margin: 0 auto 20px;
+}
+
+.toggle-button {
+    flex: 1;
+    padding: 10px 15px;
+    border: none;
+    background-color: transparent;
+    color: var(--text-color);
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+.toggle-button:hover {
+    background-color: var(--hover-color);
+}
+
+.toggle-button.active {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+/* 切换按钮样式 */
+.toggle-switch {
+    display: flex;
+    gap: 5px;
+}
+
+.toggle-switch .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+    transition: all 0.3s ease;
+}
+
+.toggle-switch .btn.active {
+    background-color: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+/* 日期输入框样式 */
+input[type="date"] {
+    color: white;
+    background-color: var(--card-bg);
+    border-color: var(--border-color);
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+}
+
+/* 日期链接样式 */
+.day-link {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    text-decoration: none;
+    color: inherit;
+}
+
+.day-link:hover {
+    text-decoration: none;
+    color: inherit;
+} 

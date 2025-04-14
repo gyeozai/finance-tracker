@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div>
+                    <i class="bi bi-calendar3 me-2"></i>
+                    <h5 class="card-title mb-0 d-inline">{{ date.strftime('%Y-%m-%d') }}</h5>
+                </div>
+                <div>
+                    <a href="{{ url_for('monthly_stats', year=date.year, month=date.month) }}" class="btn btn-outline-info btn-sm me-2">
+                        <i class="bi bi-calendar3"></i> Monthly Stats
+                    </a>
+                    <a href="{{ url_for('yearly_stats', year=date.year) }}" class="btn btn-outline-info btn-sm me-2">
+                        <i class="bi bi-calendar2"></i> Yearly Stats
+                    </a>
+                    <a href="{{ url_for('index') }}" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-arrow-left"></i> Back to Calendar
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="card bg-danger text-white">
+                            <div class="card-body">
+                                <h5 class="card-title">Total Expenses</h5>
+                                <h3 class="mb-0">{{ currency_symbol }} {{ "%.2f"|format(total_expense|abs) }}</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card bg-success text-white">
+                            <div class="card-body">
+                                <h5 class="card-title">Total Income</h5>
+                                <h3 class="mb-0">{{ currency_symbol }} {{ "%.2f"|format(total_income) }}</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">Expenses Category Distribution</h5>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="expenseCategoryChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">Income Category Distribution</h5>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="incomeCategoryChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <h5 class="mb-3">Records for this day</h5>
+                
+                {% if records %}
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Type</th>
+                                <th>Category</th>
+                                <th>Description</th>
+                                <th>Amount</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for record in records %}
+                            <tr>
+                                <td>{{ record.date.strftime('%H:%M') }}</td>
+                                <td>
+                                    {% if record.type == 'expense' %}
+                                    <span class="badge bg-danger">Expense</span>
+                                    {% else %}
+                                    <span class="badge bg-success">Income</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ record.category }}</td>
+                                <td>{{ record.description or '-' }}</td>
+                                <td class="{% if record.amount < 0 %}text-danger{% else %}text-success{% endif %}">
+                                    {{ currency_symbol }} {{ "%.2f"|format(record.amount|abs) }}
+                                </td>
+                                <td>
+                                    <form action="{{ url_for('delete_record', record_id=record.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this record?');">
+                                        <button type="submit" class="btn btn-danger btn-sm">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle me-2"></i>No records found for this day.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Prepare data for income and expense categories
+        const incomeData = {};
+        const expenseData = {};
+        
+        {% for record in records %}
+            {% if record.type == 'income' %}
+                if (!incomeData['{{ record.category }}']) {
+                    incomeData['{{ record.category }}'] = 0;
+                }
+                incomeData['{{ record.category }}'] += {{ record.amount }};
+            {% else %}
+                if (!expenseData['{{ record.category }}']) {
+                    expenseData['{{ record.category }}'] = 0;
+                }
+                expenseData['{{ record.category }}'] += {{ record.amount|abs }};
+            {% endif %}
+        {% endfor %}
+
+        // Income Category Distribution Chart
+        const incomeCtx = document.getElementById('incomeCategoryChart').getContext('2d');
+        const incomeChart = new Chart(incomeCtx, {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(incomeData),
+                datasets: [{
+                    data: Object.values(incomeData),
+                    backgroundColor: [
+                        '#198754', '#20c997', '#0dcaf0', '#0d6efd', '#6610f2',
+                        '#6f42c1', '#d63384', '#dc3545', '#fd7e14', '#ffc107'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+
+        // Expense Category Distribution Chart
+        const expenseCtx = document.getElementById('expenseCategoryChart').getContext('2d');
+        const expenseChart = new Chart(expenseCtx, {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(expenseData),
+                datasets: [{
+                    data: Object.values(expenseData),
+                    backgroundColor: [
+                        '#dc3545', '#fd7e14', '#ffc107', '#198754', '#0dcaf0',
+                        '#0d6efd', '#6610f2', '#6f42c1', '#d63384', '#20c997'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %} 

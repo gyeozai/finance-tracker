@@ -1,0 +1,292 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div>
+                    <i class="bi bi-calendar3 me-2"></i>
+                    <h5 class="card-title mb-0 d-inline">{{ month_name }} {{ year }} Statistics</h5>
+                </div>
+                <div>
+                    <a href="{{ url_for('yearly_stats', year=year) }}" class="btn btn-outline-info btn-sm">
+                        <i class="bi bi-calendar2"></i> Yearly Stats
+                    </a>
+                    <a href="{{ url_for('index') }}" class="btn btn-outline-primary btn-sm me-2">
+                        <i class="bi bi-arrow-left"></i> Back to Calendar
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="card bg-danger text-white">
+                            <div class="card-body">
+                                <h5 class="card-title">Monthly Total Expenses</h5>
+                                <h3 class="mb-0">{{ currency_symbol }} {{ "%.2f"|format(total_expense|abs) }}</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card bg-success text-white">
+                            <div class="card-body">
+                                <h5 class="card-title">Monthly Total Income</h5>
+                                <h3 class="mb-0">{{ currency_symbol }} {{ "%.2f"|format(total_income) }}</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">Expenses Category Distribution</h5>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="expenseCategoryChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">Income Category Distribution</h5>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="incomeCategoryChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mb-4">
+                    <div class="col-md-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">Daily Expenses and Income</h5>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="dailyChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">Statistics by Category</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table">
+                                        <thead>
+                                            <tr>
+                                                <th>Category</th>
+                                                <th>Amount</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for category, amount in category_stats.items() %}
+                                            <tr>
+                                                <td>{{ category }}</td>
+                                                <td class="{% if amount < 0 %}text-danger{% else %}text-success{% endif %}">
+                                                    {{ currency_symbol }} {{ "%.2f"|format(amount|abs) }}
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">Monthly Records</h5>
+                            </div>
+                            <div class="card-body">
+                                {% if records %}
+                                <div class="table-responsive">
+                                    <table class="table">
+                                        <thead>
+                                            <tr>
+                                                <th>Date</th>
+                                                <th>Type</th>
+                                                <th>Category</th>
+                                                <th>Description</th>
+                                                <th>Amount</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for record in records %}
+                                            <tr>
+                                                <td>{{ record.date.strftime('%Y-%m-%d %H:%M') }}</td>
+                                                <td>
+                                                    {% if record.type == 'expense' %}
+                                                    <span class="badge bg-danger">Expense</span>
+                                                    {% else %}
+                                                    <span class="badge bg-success">Income</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>{{ record.category }}</td>
+                                                <td>{{ record.description or '-' }}</td>
+                                                <td class="{% if record.amount < 0 %}text-danger{% else %}text-success{% endif %}">
+                                                    {{ currency_symbol }} {{ "%.2f"|format(record.amount|abs) }}
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                {% else %}
+                                <div class="alert alert-info">
+                                    <i class="bi bi-info-circle me-2"></i>No records found for this month.
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 准备收入和支出类别的数据
+        const incomeData = {};
+        const expenseData = {};
+        
+        {% for record in records %}
+            {% if record.type == 'income' %}
+                if (!incomeData['{{ record.category }}']) {
+                    incomeData['{{ record.category }}'] = 0;
+                }
+                incomeData['{{ record.category }}'] += {{ record.amount }};
+            {% else %}
+                if (!expenseData['{{ record.category }}']) {
+                    expenseData['{{ record.category }}'] = 0;
+                }
+                expenseData['{{ record.category }}'] += {{ record.amount|abs }};
+            {% endif %}
+        {% endfor %}
+
+        // 支出类别分布图
+        const expenseChart = new Chart(
+            document.getElementById('expenseCategoryChart'),
+            {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(expenseData),
+                    datasets: [{
+                        data: Object.values(expenseData),
+                        backgroundColor: [
+                            '#dc3545', '#fd7e14', '#ffc107', '#198754', '#0dcaf0',
+                            '#0d6efd', '#6610f2', '#6f42c1', '#d63384', '#20c997'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            }
+        );
+
+        // 收入类别分布图
+        const incomeChart = new Chart(
+            document.getElementById('incomeCategoryChart'),
+            {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(incomeData),
+                    datasets: [{
+                        data: Object.values(incomeData),
+                        backgroundColor: [
+                            '#198754', '#20c997', '#0dcaf0', '#0d6efd', '#6610f2',
+                            '#6f42c1', '#d63384', '#dc3545', '#fd7e14', '#ffc107'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            }
+        );
+
+        // 每日收支图表
+        const dailyData = {};
+        {% for record in records %}
+            if (!dailyData['{{ record.date.strftime("%Y-%m-%d") }}']) {
+                dailyData['{{ record.date.strftime("%Y-%m-%d") }}'] = { expenses: 0, income: 0 };
+            }
+            {% if record.amount > 0 %}
+                dailyData['{{ record.date.strftime("%Y-%m-%d") }}'].income += {{ record.amount }};
+            {% else %}
+                dailyData['{{ record.date.strftime("%Y-%m-%d") }}'].expenses += {{ record.amount|abs }};
+            {% endif %}
+        {% endfor %}
+
+        
+        const sortedDates = Object.keys(dailyData).sort();
+        
+        const dailyChart = new Chart(
+            document.getElementById('dailyChart'),
+            {
+                type: 'bar',
+                data: {
+                    labels: sortedDates.map(date => date.split('-')[2]),
+                    datasets: [
+                        {
+                            label: 'Expenses',
+                            data: sortedDates.map(date => dailyData[date].expenses),
+                            backgroundColor: '#dc3545',
+                            borderColor: '#dc3545',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Income',
+                            data: sortedDates.map(date => dailyData[date].income),
+                            backgroundColor: '#198754',
+                            borderColor: '#198754',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            }
+        );
+    });
+</script>
+{% endblock %} 

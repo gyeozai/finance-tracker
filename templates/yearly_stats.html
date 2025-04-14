@@ -1,0 +1,278 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div>
+                    <i class="bi bi-calendar2 me-2"></i>
+                    <h5 class="card-title mb-0 d-inline">{{ year }} Yearly Statistics</h5>
+                </div>
+                <div>
+                    <a href="{{ url_for('index') }}" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-arrow-left"></i> Back to Calendar
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="card bg-danger text-white">
+                            <div class="card-body">
+                                <h5 class="card-title">Yearly Total Expenses</h5>
+                                <h3 class="mb-0">{{ currency_symbol }} {{ "%.2f"|format(total_expense|abs) }}</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card bg-success text-white">
+                            <div class="card-body">
+                                <h5 class="card-title">Yearly Total Income</h5>
+                                <h3 class="mb-0">{{ currency_symbol }} {{ "%.2f"|format(total_income) }}</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">Expenses Category Distribution</h5>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="expenseCategoryChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">Income Category Distribution</h5>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="incomeCategoryChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mb-4">
+                    <div class="col-md-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">Monthly Expenses and Income</h5>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="yearMonthlyChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">Statistics by Category</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table">
+                                        <thead>
+                                            <tr>
+                                                <th>Category</th>
+                                                <th>Amount</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for category, amount in category_stats.items() %}
+                                            <tr>
+                                                <td>{{ category }}</td>
+                                                <td class="{% if amount < 0 %}text-danger{% else %}text-success{% endif %}">
+                                                    {{ currency_symbol }} {{ "%.2f"|format(amount|abs) }}
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">Statistics by Month</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table">
+                                        <thead>
+                                            <tr>
+                                                <th>Month</th>
+                                                <th>Amount</th>
+                                                <th>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for month, amount in monthly_stats.items() %}
+                                            <tr>
+                                                <td>Month {{ month }}</td>
+                                                <td class="{% if amount < 0 %}text-danger{% else %}text-success{% endif %}">
+                                                    {{ currency_symbol }} {{ "%.2f"|format(amount|abs) }}
+                                                </td>
+                                                <td>
+                                                    <a href="{{ url_for('monthly_stats', year=year, month=month) }}" class="btn btn-sm btn-outline-primary">
+                                                        View Details
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Prepare data for income and expense categories
+        const incomeData = {};
+        const expenseData = {};
+        
+        {% for record in records %}
+            {% if record.type == 'income' %}
+                if (!incomeData['{{ record.category }}']) {
+                    incomeData['{{ record.category }}'] = 0;
+                }
+                incomeData['{{ record.category }}'] += {{ record.amount }};
+            {% else %}
+                if (!expenseData['{{ record.category }}']) {
+                    expenseData['{{ record.category }}'] = 0;
+                }
+                expenseData['{{ record.category }}'] += {{ record.amount|abs }};
+            {% endif %}
+        {% endfor %}
+
+        // Expense Category Distribution Chart
+        const expenseCtx = document.getElementById('expenseCategoryChart').getContext('2d');
+        const expenseChart = new Chart(expenseCtx, {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(expenseData),
+                datasets: [{
+                    data: Object.values(expenseData),
+                    backgroundColor: [
+                        '#dc3545', '#fd7e14', '#ffc107', '#198754', '#0dcaf0',
+                        '#0d6efd', '#6610f2', '#6f42c1', '#d63384', '#20c997'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+
+        // Income Category Distribution Chart
+        const incomeCtx = document.getElementById('incomeCategoryChart').getContext('2d');
+        const incomeChart = new Chart(incomeCtx, {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(incomeData),
+                datasets: [{
+                    data: Object.values(incomeData),
+                    backgroundColor: [
+                        '#198754', '#20c997', '#0dcaf0', '#0d6efd', '#6610f2',
+                        '#6f42c1', '#d63384', '#dc3545', '#fd7e14', '#ffc107'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+
+        // Monthly Expenses and Income Chart
+        const monthlyCtx = document.getElementById('yearMonthlyChart').getContext('2d');
+        
+        // Prepare data for monthly chart
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const monthlyExpenses = [];
+        const monthlyIncome = [];
+        
+        {% for month, amount in monthly_stats.items() %}
+            {% if amount < 0 %}
+                monthlyExpenses[{{ month - 1 }}] = {{ amount|abs }};
+                monthlyIncome[{{ month - 1 }}] = 0;
+            {% else %}
+                monthlyExpenses[{{ month - 1 }}] = 0;
+                monthlyIncome[{{ month - 1 }}] = {{ amount }};
+            {% endif %}
+        {% endfor %}
+        
+        // Fill in zeros for months with no data
+        for (let i = 0; i < 12; i++) {
+            if (monthlyExpenses[i] === undefined) monthlyExpenses[i] = 0;
+            if (monthlyIncome[i] === undefined) monthlyIncome[i] = 0;
+        }
+        
+        const monthlyChart = new Chart(monthlyCtx, {
+            type: 'bar',
+            data: {
+                labels: monthNames,
+                datasets: [
+                    {
+                        label: 'Expenses',
+                        data: monthlyExpenses,
+                        backgroundColor: '#dc3545',
+                        borderColor: '#dc3545',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Income',
+                        data: monthlyIncome,
+                        backgroundColor: '#198754',
+                        borderColor: '#198754',
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %} 
